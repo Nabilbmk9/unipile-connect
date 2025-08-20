@@ -2,6 +2,7 @@
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Any
+from pathlib import Path
 
 import requests
 from dotenv import load_dotenv
@@ -14,6 +15,14 @@ from fastapi.templating import Jinja2Templates
 load_dotenv()
 
 app = FastAPI()
+
+# chemins robustes, indépendants du cwd
+BASE_DIR = Path(__file__).resolve().parent
+STATIC_DIR = BASE_DIR / "static"
+TEMPLATES_DIR = BASE_DIR / "templates"
+
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 # --- Fichiers statiques (CSS/JS) ---
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
