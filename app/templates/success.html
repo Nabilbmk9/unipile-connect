@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Connexion réussie - Unipile Connect</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner">
+        <div class="logo">
+          <span class="logo-icon">🔌</span>
+          <span class="logo-text">Unipile Connect</span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero success-hero">
+        <div class="container">
+          <div class="hero-content">
+            <div class="success-icon">✅</div>
+            <h1 id="success-title">Connexion réussie !</h1>
+            <p id="success-message">
+              Votre compte a été connecté avec succès.
+            </p>
+            <div id="connection-details" class="connection-details" style="display: none;">
+              <h3>Détails de la connexion</h3>
+              <div class="detail-item">
+                <strong>Plateforme:</strong> <span id="provider-name">-</span>
+              </div>
+              <div class="detail-item">
+                <strong>Nom:</strong> <span id="user-name">-</span>
+              </div>
+              <div class="detail-item">
+                <strong>Connecté le:</strong> <span id="connection-time">-</span>
+              </div>
+            </div>
+            <div class="hero-actions">
+              <a href="/" class="btn btn-primary">Retour à l'accueil</a>
+              <a href="/connect/linkedin" class="btn btn-secondary">Connecter une autre plateforme</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="next-steps container">
+        <h2>Prochaines étapes</h2>
+        <div class="steps-grid">
+          <div class="step">
+            <div class="step-number">1</div>
+            <h3>Vérifiez la connexion</h3>
+            <p>Votre compte est maintenant connecté et synchronisé.</p>
+          </div>
+          <div class="step">
+            <div class="step-number">2</div>
+            <h3>Configurez vos webhooks</h3>
+            <p>Recevez des notifications en temps réel via n8n ou votre plateforme préférée.</p>
+          </div>
+          <div class="step">
+            <div class="step-number">3</div>
+            <h3>Automatisez vos workflows</h3>
+            <p>Créez des automatisations basées sur les événements de vos plateformes connectées.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <span>© <span id="year"></span> Unipile Connect</span>
+        <a href="#">Confidentialité</a>
+      </div>
+    </footer>
+
+    <script>
+      document.getElementById("year").textContent = new Date().getFullYear();
+      
+      // Parse URL parameters to show connection details
+      const urlParams = new URLSearchParams(window.location.search);
+      const provider = urlParams.get('provider');
+      const name = urlParams.get('name');
+      
+      if (provider && name) {
+        document.getElementById('provider-name').textContent = provider.charAt(0).toUpperCase() + provider.slice(1);
+        document.getElementById('user-name').textContent = name;
+        document.getElementById('connection-time').textContent = new Date().toLocaleString('fr-FR');
+        document.getElementById('connection-details').style.display = 'block';
+        
+        // Update success message
+        document.getElementById('success-title').textContent = `Connexion ${provider} réussie !`;
+        document.getElementById('success-message').textContent = `Votre compte ${provider} a été connecté avec succès.`;
+      }
+    </script>
+  </body>
+</html>
