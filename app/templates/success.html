@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Connexion réussie - Unipile Connect</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="/static/css/styles.css?v=1" />
   </head>
   <body>
     <header class="site-header">
@@ -22,10 +22,12 @@
           <div class="hero-content">
             <div class="success-icon">✅</div>
             <h1 id="success-title">Connexion réussie !</h1>
-            <p id="success-message">
-              Votre compte a été connecté avec succès.
-            </p>
-            <div id="connection-details" class="connection-details" style="display: none;">
+            <p id="success-message">Votre compte a été connecté avec succès.</p>
+            <div
+              id="connection-details"
+              class="connection-details"
+              style="display: none"
+            >
               <h3>Détails de la connexion</h3>
               <div class="detail-item">
                 <strong>Plateforme:</strong> <span id="provider-name">-</span>
@@ -34,12 +36,15 @@
                 <strong>Nom:</strong> <span id="user-name">-</span>
               </div>
               <div class="detail-item">
-                <strong>Connecté le:</strong> <span id="connection-time">-</span>
+                <strong>Connecté le:</strong>
+                <span id="connection-time">-</span>
               </div>
             </div>
             <div class="hero-actions">
               <a href="/" class="btn btn-primary">Retour à l'accueil</a>
-              <a href="/connect/linkedin" class="btn btn-secondary">Connecter une autre plateforme</a>
+              <a href="/connect/linkedin" class="btn btn-secondary"
+                >Connecter une autre plateforme</a
+              >
             </div>
           </div>
         </div>
@@ -56,12 +61,18 @@
           <div class="step">
             <div class="step-number">2</div>
             <h3>Configurez vos webhooks</h3>
-            <p>Recevez des notifications en temps réel via n8n ou votre plateforme préférée.</p>
+            <p>
+              Recevez des notifications en temps réel via n8n ou votre
+              plateforme préférée.
+            </p>
           </div>
           <div class="step">
             <div class="step-number">3</div>
             <h3>Automatisez vos workflows</h3>
-            <p>Créez des automatisations basées sur les événements de vos plateformes connectées.</p>
+            <p>
+              Créez des automatisations basées sur les événements de vos
+              plateformes connectées.
+            </p>
           </div>
         </div>
       </section>
@@ -76,21 +87,27 @@
 
     <script>
       document.getElementById("year").textContent = new Date().getFullYear();
-      
+
       // Parse URL parameters to show connection details
       const urlParams = new URLSearchParams(window.location.search);
-      const provider = urlParams.get('provider');
-      const name = urlParams.get('name');
-      
+      const provider = urlParams.get("provider");
+      const name = urlParams.get("name");
+
       if (provider && name) {
-        document.getElementById('provider-name').textContent = provider.charAt(0).toUpperCase() + provider.slice(1);
-        document.getElementById('user-name').textContent = name;
-        document.getElementById('connection-time').textContent = new Date().toLocaleString('fr-FR');
-        document.getElementById('connection-details').style.display = 'block';
-        
+        document.getElementById("provider-name").textContent =
+          provider.charAt(0).toUpperCase() + provider.slice(1);
+        document.getElementById("user-name").textContent = name;
+        document.getElementById("connection-time").textContent =
+          new Date().toLocaleString("fr-FR");
+        document.getElementById("connection-details").style.display = "block";
+
         // Update success message
-        document.getElementById('success-title').textContent = `Connexion ${provider} réussie !`;
-        document.getElementById('success-message').textContent = `Votre compte ${provider} a été connecté avec succès.`;
+        document.getElementById(
+          "success-title"
+        ).textContent = `Connexion ${provider} réussie !`;
+        document.getElementById(
+          "success-message"
+        ).textContent = `Votre compte ${provider} a été connecté avec succès.`;
       }
     </script>
   </body>
