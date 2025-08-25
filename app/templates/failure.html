@@ -4,28 +4,45 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Échec de connexion · Unipile Connect</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
     <link rel="stylesheet" href="/static/css/styles.css?v=1" />
   </head>
   <body>
-    <main class="container" style="padding: 72px 24px">
-      <div
-        class="feature"
-        style="max-width: 720px; margin: 0 auto; text-align: center"
-      >
-        <h1 style="margin-top: 0">❌ Échec de la connexion</h1>
-        <p class="steps">
-          Nous n’avons pas pu connecter le compte. Veuillez réessayer.
-        </p>
-        <p style="margin-top: 20px">
-          <a class="btn btn-secondary" href="/">Retour à l’accueil</a>
-        </p>
+    <header class="site-header">
+      <div class="container header-inner">
+        <div class="brand">
+          <div class="logo">U</div>
+          <span class="brand-text">Unipile Connect</span>
+        </div>
       </div>
+    </header>
+
+    <main>
+      <section class="hero failure-hero">
+        <div class="container">
+          <div class="hero-content">
+            <div class="failure-icon">❌</div>
+            <h1>Échec de la connexion</h1>
+            <p>Nous n’avons pas pu connecter le compte. Veuillez réessayer.</p>
+            <div class="hero-actions">
+              <a href="/" class="btn btn-primary">Retour à l'accueil</a>
+              <a href="/connect/linkedin" class="btn btn-secondary"
+                >Réessayer</a
+              >
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <span>© <span id="year"></span> Unipile Connect</span>
+        <a href="#">Confidentialité</a>
+      </div>
+    </footer>
+
+    <script>
+      document.getElementById("year").textContent = new Date().getFullYear();
+    </script>
   </body>
 </html>
