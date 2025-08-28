@@ -7,6 +7,7 @@ from typing import Dict, Any, Optional
 
 import requests
 from dotenv import load_dotenv
+from urllib.parse import urlencode
 from fastapi import FastAPI, Request, HTTPException, Body, Depends, Form, Response
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -35,10 +36,13 @@ app.mount("/css", StaticFiles(directory=str(STATIC_DIR / "css")), name="css")
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 # ---------- Config Unipile / App
-UNIPILE_API_BASE = os.getenv("UNIPILE_API_BASE", "").rstrip("/")  # ex: https://api8.unipile.com:13816/api/v1
-UNIPILE_API_HOST = os.getenv("UNIPILE_API_HOST", "").rstrip("/")  # ex: https://api8.unipile.com:13816 (SANS /api/v1)
+UNIPILE_API_BASE = os.getenv("UNIPILE_API_BASE", "").strip().rstrip("/")  # ex: https://api8.unipile.com:13816/api/v1
+UNIPILE_API_HOST = os.getenv("UNIPILE_API_HOST", "").strip().rstrip("/")  # ex: https://account.unipile.com
 UNIPILE_API_KEY = os.getenv("UNIPILE_API_KEY", "")
-APP_BASE_URL = os.getenv("APP_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
+_raw_app_base = os.getenv("APP_BASE_URL", "http://127.0.0.1:8000").strip()
+if not _raw_app_base.startswith("http"):
+    _raw_app_base = "https://" + _raw_app_base
+APP_BASE_URL = _raw_app_base.rstrip("/")
 
 # ---------- Config
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-this")
@@ -205,8 +209,8 @@ async def connect_linkedin(request: Request, db: Session = Depends(get_db)):
         "scope": "r_liteprofile r_emailaddress w_member_social"
     }
     
-    # Build query string
-    query_string = "&".join([f"{k}={v}" for k, v in params.items()])
+    # Build query string (URL-encoded)
+    query_string = urlencode(params)
     full_url = f"{unipile_url}?{query_string}"
     
     return RedirectResponse(url=full_url, status_code=302)
