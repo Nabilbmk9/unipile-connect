@@ -48,7 +48,7 @@ FAILURE_URL = f"{APP_BASE_URL}/connect/failure"
 NOTIFY_URL  = f"{APP_BASE_URL}/unipile/notify"
 
 # Import database and auth first
-from .database import get_db, ConnectedAccount, User
+from .database import get_db, ConnectedAccount, User, create_tables
 from .auth import get_current_user_session, create_session, delete_session
 
 # Now import and include user routes after dependencies are loaded
@@ -59,6 +59,12 @@ app.include_router(users_router, prefix="/users", tags=["users"])
 @app.on_event("startup")
 async def startup_event():
     print("🚀 Application starting up...")
+    # Ensure database tables exist (idempotent)
+    try:
+        create_tables()
+        print("✅ Database tables ensured")
+    except Exception as e:
+        print(f"❌ Failed to ensure database tables: {e}")
     print("📋 Available routes:")
     for route in app.routes:
         if hasattr(route, 'path') and hasattr(route, 'methods'):
