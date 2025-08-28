@@ -7,6 +7,20 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional, Union
 from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+# Workaround for passlib + bcrypt>=4 on Python 3.12 where __about__.__version__
+# was removed from the bcrypt package. Passlib 1.7.x still probes this attribute
+# and logs noisy errors. We add a minimal shim before importing passlib.
+import bcrypt  # type: ignore
+try:  # pragma: no cover - defensive shim
+    _ = bcrypt.__about__.__version__  # noqa: F401
+except Exception:  # Attribute missing on bcrypt>=4
+    try:
+        version = getattr(bcrypt, "__version__", "4")
+        class _About:  # lightweight container to satisfy passlib check
+            __version__ = version
+        bcrypt.__about__ = _About()  # type: ignore[attr-defined]
+    except Exception:
+        pass
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
