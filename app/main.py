@@ -69,6 +69,15 @@ async def startup_event():
         print("✅ Database tables ensured")
     except Exception as e:
         print(f"❌ Failed to ensure database tables: {e}")
+    # Log key configuration (sanitized)
+    try:
+        print("🔧 Config:")
+        print(f"  APP_BASE_URL = {APP_BASE_URL}")
+        print(f"  UNIPILE_API_HOST = {UNIPILE_API_HOST}")
+        print(f"  UNIPILE_API_BASE = {UNIPILE_API_BASE}")
+        print(f"  UNIPILE_API_KEY set: {'yes' if bool(UNIPILE_API_KEY) else 'no'}")
+    except Exception as e:
+        print(f"⚠️ Could not print config: {e}")
     print("📋 Available routes:")
     for route in app.routes:
         if hasattr(route, 'path') and hasattr(route, 'methods'):
@@ -200,19 +209,44 @@ async def connect_linkedin(request: Request, db: Session = Depends(get_db)):
     if not user_session:
         return RedirectResponse(url="/login", status_code=303)
     
-    # Redirect to Unipile LinkedIn connection
-    unipile_url = f"{UNIPILE_API_HOST}/auth/linkedin"
+    # Redirect to Unipile LinkedIn connection (ensure correct host)
+    connect_host = UNIPILE_API_HOST or "https://account.unipile.com"
+    if ("unipile" in connect_host and ("api." in connect_host or "api8." in connect_host or "/api" in connect_host)):
+        connect_host = "https://account.unipile.com"
+    unipile_url = f"{connect_host}/auth/linkedin"
     params = {
         "client_id": UNIPILE_API_KEY,
         "redirect_uri": SUCCESS_URL,
         "state": user_session.user_id,  # Pass user ID in state
         "scope": "r_liteprofile r_emailaddress w_member_social"
     }
-    
-    # Build query string (URL-encoded)
+
+    # Preferred: ask Unipile API to generate a signed redirect URL
+    # This typically returns an encoded one-time link hosted on account.unipile.com
+    try:
+        if UNIPILE_API_BASE:
+            api_link = f"{UNIPILE_API_BASE}/auth/linkedin"
+            api_resp = requests.get(api_link, params=params, timeout=12)
+            if api_resp.ok:
+                data = {}
+                try:
+                    data = api_resp.json()
+                except Exception:
+                    data = {}
+                signed_url = (
+                    data.get("url")
+                    or data.get("redirectUrl")
+                    or data.get("redirect")
+                    or data.get("link")
+                )
+                if signed_url:
+                    return RedirectResponse(url=signed_url, status_code=302)
+    except Exception as e:
+        print(f"⚠️ Could not fetch signed Unipile link: {e}")
+
+    # Fallback: build direct account link with encoded query
     query_string = urlencode(params)
     full_url = f"{unipile_url}?{query_string}"
-    
     return RedirectResponse(url=full_url, status_code=302)
 
 @app.get("/connect/success")
