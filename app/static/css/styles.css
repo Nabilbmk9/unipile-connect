@@ -50,6 +50,10 @@ body {
   background: rgba(255, 255, 255, 0.6);
   border-bottom: 1px solid var(--stroke);
 }
+.site-header.scrolled {
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 6px 24px rgba(2, 6, 23, 0.06);
+}
 .header-inner {
   display: flex;
   align-items: center;
@@ -78,13 +82,64 @@ body {
   display: flex;
   gap: 18px;
 }
-.nav a {
+.nav a:not(.btn) {
   color: var(--muted);
   text-decoration: none;
   font-weight: 500;
+  padding: 8px 10px;
+  border-radius: 8px;
+  transition: background-color 160ms ease, color 160ms ease;
 }
-.nav a:hover {
+.nav a:not(.btn):hover {
   color: var(--text);
+  background: #f1f5f9;
+}
+
+.user-menu {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: 6px;
+  padding-left: 12px;
+  border-left: 1px solid var(--stroke);
+}
+.user-greeting {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* Mobile nav toggle */
+.nav-toggle {
+  display: none;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--stroke);
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 10px;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  cursor: pointer;
+}
+.nav-toggle span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: var(--text);
+  border-radius: 2px;
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+.nav-toggle span + span {
+  margin-top: 4px;
+}
+.nav-open .nav-toggle span:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+}
+.nav-open .nav-toggle span:nth-child(2) {
+  opacity: 0;
+}
+.nav-open .nav-toggle span:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
 }
 
 .hero {
@@ -502,6 +557,35 @@ body {
   .feature-grid,
   .provider-grid {
     grid-template-columns: 1fr;
+  }
+  .nav-toggle {
+    display: inline-flex;
+  }
+  .nav {
+    position: fixed;
+    top: 64px;
+    right: 16px;
+    left: 16px;
+    display: grid;
+    gap: 8px;
+    padding: 12px;
+    border-radius: 14px;
+    border: 1px solid var(--stroke);
+    background: var(--bg-soft);
+    box-shadow: 0 16px 40px rgba(2, 6, 23, 0.12);
+    opacity: 0;
+    transform: translateY(-8px);
+    pointer-events: none;
+    transition: opacity 160ms ease, transform 160ms ease;
+  }
+  .site-header.nav-open .nav {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  .nav a:not(.btn) {
+    padding: 10px 12px;
+    border-radius: 8px;
   }
 }
 

@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tableau de bord | Unipile Connect</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner">
+        <div class="brand">
+          <div class="logo">U</div>
+          <span class="brand-text">Unipile Connect</span>
+        </div>
+        <nav class="nav">
+          <a href="/">Accueil</a>
+          <a href="/dashboard" class="active">Tableau de bord</a>
+          <div class="user-menu">
+            <span class="user-greeting">Bonjour, {{ current_user }}</span>
+            <a href="/logout" class="btn btn-small">Déconnexion</a>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="dashboard-hero container">
+        <div class="dashboard-header">
+          <h1>Tableau de bord</h1>
+          <p>Gérez vos connexions Unipile et surveillez vos comptes</p>
+        </div>
+      </section>
+
+      <section class="dashboard-content container">
+        <!-- Error Messages -->
+        {% if request.query_params.get('error') %}
+        <div class="error-banner">
+          {% set error = request.query_params.get('error') %} {% if error ==
+          'config_missing' %}
+          <p>⚠️ Configuration Unipile manquante. Vérifiez votre fichier .env</p>
+          {% elif error == 'invalid_credentials' %}
+          <p>🔑 Identifiants Unipile invalides. Vérifiez votre clé API</p>
+          {% elif error == 'access_denied' %}
+          <p>🚫 Accès refusé. Vérifiez vos permissions Unipile</p>
+          {% elif error == 'network_error' %}
+          <p>🌐 Erreur réseau. Vérifiez votre connexion internet</p>
+          {% elif error == 'invalid_response' %}
+          <p>❌ Réponse invalide d'Unipile. Réessayez plus tard</p>
+          {% else %}
+          <p>❌ Erreur inconnue: {{ error }}</p>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        <div class="dashboard-grid">
+          <!-- Quick Actions -->
+          <div class="dashboard-card">
+            <h3>Actions rapides</h3>
+            <div class="action-buttons">
+              <a href="/connect/linkedin" class="btn btn-primary">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path
+                    d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.851-3.037-1.853 0-2.136 1.446-2.136 2.941v5.665H9.352V9h3.414v1.561h.049c.476-.9 1.637-1.85 3.368-1.85 3.6 0 4.266 2.37 4.266 5.455v6.286zM5.337 7.433c-1.144 0-2.068-.928-2.068-2.073 0-1.144.924-2.072 2.068-2.072 1.143 0 2.068.928 2.068 2.072 0 1.145-.925 2.073-2.068 2.073zM6.997 20.452H3.677V9h3.32v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"
+                  />
+                </svg>
+                Connecter LinkedIn
+              </a>
+              <button onclick="refreshAccounts()" class="btn btn-secondary">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path
+                    d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"
+                  />
+                </svg>
+                Actualiser
+              </button>
+              <a href="/" class="btn btn-secondary">Voir l'accueil</a>
+            </div>
+          </div>
+
+          <!-- Connected Accounts -->
+          <div class="dashboard-card">
+            <h3>Comptes connectés</h3>
+            {% if connected_accounts %}
+            <div class="accounts-list">
+              {% for account_id, account in connected_accounts.items() %}
+              <div class="account-item" data-account-id="{{ account_id }}">
+                <div class="account-info">
+                  <div
+                    class="account-status {{ 'connected' if account.status == 'CREATION_SUCCESS' else 'pending' }}"
+                  >
+                    {% if account.status == 'CREATION_SUCCESS' %}
+                    <span class="status-dot connected"></span>
+                    Connecté {% else %}
+                    <span class="status-dot pending"></span>
+                    {{ account.status }} {% endif %}
+                  </div>
+                  <div class="account-details">
+                    <strong>ID: {{ account_id }}</strong>
+                    {% if account.user %}
+                    <span class="user-ref"
+                      >Utilisateur: {{ account.user }}</span
+                    >
+                    {% endif %}
+                  </div>
+                </div>
+                <div class="account-actions">
+                  <button
+                    class="btn btn-small"
+                    onclick="viewAccountDetails('{{ account_id }}')"
+                  >
+                    Détails
+                  </button>
+                  <button
+                    class="btn btn-small btn-danger"
+                    onclick="disconnectAccount('{{ account_id }}')"
+                  >
+                    Déconnecter
+                  </button>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+              <p>Aucun compte connecté pour le moment.</p>
+              <p>Commencez par connecter votre premier compte LinkedIn !</p>
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- Account Details Modal -->
+          <div id="accountModal" class="modal" style="display: none">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h3>Détails du compte</h3>
+                <span class="close" onclick="closeModal()">&times;</span>
+              </div>
+              <div class="modal-body" id="modalBody">
+                <!-- Content will be populated by JavaScript -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <span>© <span id="year"></span> Unipile Connect</span>
+        <a href="#">Confidentialité</a>
+      </div>
+    </footer>
+
+    <script>
+      document.getElementById("year").textContent = new Date().getFullYear();
+
+      function viewAccountDetails(accountId) {
+        const account = {{ connected_accounts | tojson }};
+        const accountData = account[accountId];
+
+        if (accountData) {
+          const modalBody = document.getElementById('modalBody');
+          modalBody.innerHTML = `
+            <div class="account-details-full">
+              <div class="detail-row">
+                <strong>Statut:</strong> ${accountData.status}
+              </div>
+              <div class="detail-row">
+                <strong>Utilisateur:</strong> ${accountData.user || 'N/A'}
+              </div>
+              <div class="detail-row">
+                <strong>Données brutes:</strong>
+                <pre class="raw-data">${JSON.stringify(accountData.raw, null, 2)}</pre>
+              </div>
+            </div>
+          `;
+
+          document.getElementById('accountModal').style.display = 'block';
+        }
+      }
+
+      function closeModal() {
+        document.getElementById('accountModal').style.display = 'none';
+      }
+
+      function disconnectAccount(accountId) {
+        if (confirm('Êtes-vous sûr de vouloir déconnecter ce compte ?')) {
+          fetch(`/disconnect/${accountId}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              // Remove the account item from the UI
+              const accountItem = document.querySelector(`[data-account-id="${accountId}"]`);
+              if (accountItem) {
+                accountItem.remove();
+              }
+
+              // Check if there are no more accounts
+              const accountsList = document.querySelector('.accounts-list');
+              if (accountsList && accountsList.children.length === 0) {
+                location.reload(); // Reload to show empty state
+              }
+
+              alert('Compte déconnecté avec succès');
+            } else {
+              alert('Erreur lors de la déconnexion: ' + data.error);
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('Erreur lors de la déconnexion');
+          });
+        }
+      }
+
+            function refreshAccounts() {
+        fetch('/api/accounts')
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              updateAccountsList(data.accounts);
+            }
+          })
+          .catch(error => {
+            console.error('Error refreshing accounts:', error);
+          });
+      }
+
+      function updateAccountsList(accounts) {
+        const accountsList = document.querySelector('.accounts-list');
+        if (!accountsList) return;
+
+        if (Object.keys(accounts).length === 0) {
+          accountsList.innerHTML = `
+            <div class="empty-state">
+              <p>Aucun compte connecté pour le moment.</p>
+              <p>Commencez par connecter votre premier compte LinkedIn !</p>
+            </div>
+          `;
+          return;
+        }
+
+        accountsList.innerHTML = Object.entries(accounts).map(([accountId, account]) => `
+          <div class="account-item" data-account-id="${accountId}">
+            <div class="account-info">
+              <div class="account-status ${account.status === 'CREATION_SUCCESS' ? 'connected' : 'pending'}">
+                ${account.status === 'CREATION_SUCCESS'
+                  ? '<span class="status-dot connected"></span>Connecté'
+                  : `<span class="status-dot pending"></span>${account.status}`
+                }
+              </div>
+              <div class="account-details">
+                <strong>ID: ${accountId}</strong>
+                ${account.user ? `<span class="user-ref">Utilisateur: ${account.user}</span>` : ''}
+              </div>
+            </div>
+            <div class="account-actions">
+              <button class="btn btn-small" onclick="viewAccountDetails('${accountId}')">
+                Détails
+              </button>
+              <button class="btn btn-small btn-danger" onclick="disconnectAccount('${accountId}')">
+                Déconnecter
+              </button>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      // Auto-refresh every 30 seconds to show new connections
+      setInterval(() => {
+        // Only refresh if we're on the dashboard and not in a modal
+        if (document.getElementById('accountModal').style.display === 'none') {
+          refreshAccounts();
+        }
+      }, 30000);
+
+      // Close modal when clicking outside
+      window.onclick = function(event) {
+        const modal = document.getElementById('accountModal');
+        if (event.target == modal) {
+          closeModal();
+        }
+      }
+    </script>
+  </body>
+</html>

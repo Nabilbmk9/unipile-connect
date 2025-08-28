@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mon Profil | Unipile Connect</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner">
+        <div class="brand">
+          <div class="logo">U</div>
+          <span class="brand-text">Unipile Connect</span>
+        </div>
+        <nav class="nav">
+          <a href="/">Accueil</a>
+          <a href="/dashboard">Tableau de bord</a>
+          <a href="/users/profile" class="active">Mon Profil</a>
+          <div class="user-menu">
+            <span class="user-greeting">Bonjour, {{ user.username }}</span>
+            <a href="/logout" class="btn btn-small">Déconnexion</a>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="dashboard-hero container">
+        <div class="dashboard-header">
+          <h1>Mon Profil</h1>
+          <p>Gérez vos informations personnelles et votre compte</p>
+        </div>
+      </section>
+
+      <section class="dashboard-content container">
+        <div class="dashboard-grid">
+          <!-- Profile Information -->
+          <div class="dashboard-card">
+            <h3>Informations du profil</h3>
+            
+            {% if success %}
+            <div class="success-message">
+              <p>{{ success }}</p>
+            </div>
+            {% endif %}
+
+            {% if error %}
+            <div class="error-message">
+              <p>{{ error }}</p>
+            </div>
+            {% endif %}
+
+            <form class="profile-form" method="POST" action="/users/profile">
+              <div class="form-group">
+                <label for="username">Nom d'utilisateur</label>
+                <input
+                  type="text"
+                  id="username"
+                  value="{{ user.username }}"
+                  class="form-input"
+                  disabled
+                />
+                <small>Le nom d'utilisateur ne peut pas être modifié</small>
+              </div>
+
+              <div class="form-group">
+                <label for="email">Email *</label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value="{{ user.email }}"
+                  class="form-input"
+                  required
+                  placeholder="votre@email.com"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="full_name">Nom complet</label>
+                <input
+                  type="text"
+                  id="full_name"
+                  name="full_name"
+                  value="{{ user.full_name or '' }}"
+                  class="form-input"
+                  placeholder="Votre nom complet"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="created_at">Membre depuis</label>
+                <input
+                  type="text"
+                  id="created_at"
+                  value="{{ user.created_at.strftime('%d/%m/%Y') }}"
+                  class="form-input"
+                  disabled
+                />
+              </div>
+
+              <button type="submit" class="btn btn-primary">
+                Mettre à jour le profil
+              </button>
+            </form>
+          </div>
+
+          <!-- Change Password -->
+          <div class="dashboard-card">
+            <h3>Changer le mot de passe</h3>
+            
+            <form class="password-form" method="POST" action="/users/change-password">
+              <div class="form-group">
+                <label for="current_password">Mot de passe actuel *</label>
+                <input
+                  type="password"
+                  id="current_password"
+                  name="current_password"
+                  class="form-input"
+                  required
+                  placeholder="Votre mot de passe actuel"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="new_password">Nouveau mot de passe *</label>
+                <input
+                  type="password"
+                  id="new_password"
+                  name="new_password"
+                  class="form-input"
+                  required
+                  minlength="8"
+                  placeholder="Nouveau mot de passe"
+                />
+                <small>Minimum 8 caractères</small>
+              </div>
+
+              <div class="form-group">
+                <label for="confirm_password">Confirmer le nouveau mot de passe *</label>
+                <input
+                  type="password"
+                  id="confirm_password"
+                  name="confirm_password"
+                  class="form-input"
+                  required
+                  placeholder="Confirmez le nouveau mot de passe"
+                />
+              </div>
+
+              <button type="submit" class="btn btn-secondary">
+                Changer le mot de passe
+              </button>
+            </form>
+          </div>
+
+          <!-- Account Status -->
+          <div class="dashboard-card">
+            <h3>Statut du compte</h3>
+            
+            <div class="account-status-info">
+              <div class="status-item">
+                <span class="status-label">Statut:</span>
+                <span class="status-value {{ 'active' if user.is_active else 'inactive' }}">
+                  {{ 'Actif' if user.is_active else 'Inactif' }}
+                </span>
+              </div>
+              
+              <div class="status-item">
+                <span class="status-label">Rôle:</span>
+                <span class="status-value {{ 'admin' if user.is_admin else 'user' }}">
+                  {{ 'Administrateur' if user.is_admin else 'Utilisateur' }}
+                </span>
+              </div>
+              
+              <div class="status-item">
+                <span class="status-label">Dernière mise à jour:</span>
+                <span class="status-value">
+                  {{ user.updated_at.strftime('%d/%m/%Y %H:%M') if user.updated_at else 'Jamais' }}
+                </span>
+              </div>
+            </div>
+
+            <div class="account-actions">
+              <a href="/dashboard" class="btn btn-primary">
+                Retour au tableau de bord
+              </a>
+              
+              {% if user.is_admin %}
+              <a href="/users/admin" class="btn btn-secondary">
+                Administration
+              </a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <span>© <span id="year"></span> Unipile Connect</span>
+        <a href="#">Confidentialité</a>
+      </div>
+    </footer>
+
+    <script>
+      document.getElementById("year").textContent = new Date().getFullYear();
+
+      // Password confirmation validation
+      const newPassword = document.getElementById('new_password');
+      const confirmPassword = document.getElementById('confirm_password');
+      const passwordForm = document.querySelector('.password-form');
+
+      function validatePassword() {
+        if (newPassword.value !== confirmPassword.value) {
+          confirmPassword.setCustomValidity('Les mots de passe ne correspondent pas');
+        } else {
+          confirmPassword.setCustomValidity('');
+        }
+      }
+
+      newPassword.addEventListener('change', validatePassword);
+      confirmPassword.addEventListener('keyup', validatePassword);
+
+      // Form validation
+      passwordForm.addEventListener('submit', function(e) {
+        if (newPassword.value !== confirmPassword.value) {
+          e.preventDefault();
+          alert('Les nouveaux mots de passe ne correspondent pas');
+          return false;
+        }
+        
+        if (newPassword.value.length < 8) {
+          e.preventDefault();
+          alert('Le nouveau mot de passe doit contenir au moins 8 caractères');
+          return false;
+        }
+      });
+
+      // Real-time validation feedback
+      const inputs = document.querySelectorAll('.form-input:not([disabled])');
+      inputs.forEach(input => {
+        input.addEventListener('blur', function() {
+          if (this.checkValidity()) {
+            this.classList.remove('invalid');
+            this.classList.add('valid');
+          } else {
+            this.classList.remove('valid');
+            this.classList.add('invalid');
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

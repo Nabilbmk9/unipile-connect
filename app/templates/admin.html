@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Administration | Unipile Connect</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner">
+        <div class="brand">
+          <div class="logo">U</div>
+          <span class="brand-text">Unipile Connect</span>
+        </div>
+        <nav class="nav">
+          <a href="/">Accueil</a>
+          <a href="/dashboard">Tableau de bord</a>
+          <a href="/users/profile">Mon Profil</a>
+          <a href="/users/admin" class="active">Administration</a>
+          <div class="user-menu">
+            <span class="user-greeting"
+              >Admin: {{ current_user.username }}</span
+            >
+            <a href="/logout" class="btn btn-small">Déconnexion</a>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="dashboard-hero container">
+        <div class="dashboard-header">
+          <h1>Administration</h1>
+          <p>Gérez les utilisateurs et surveillez le système</p>
+        </div>
+      </section>
+
+      <section class="dashboard-content container">
+        <!-- Messages -->
+        {% if request.query_params.get('message') %}
+        <div class="success-banner">
+          <p>{{ request.query_params.get('message') }}</p>
+        </div>
+        {% endif %} {% if request.query_params.get('error') %}
+        <div class="error-banner">
+          <p>{{ request.query_params.get('error') }}</p>
+        </div>
+        {% endif %}
+
+        <div class="dashboard-grid">
+          <!-- Statistics -->
+          <div class="dashboard-card">
+            <h3>Statistiques du système</h3>
+            <div class="stats-grid">
+              <div class="stat-item">
+                <div class="stat-number">{{ stats.total_users }}</div>
+                <div class="stat-label">Utilisateurs</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-number">{{ stats.total_accounts }}</div>
+                <div class="stat-label">Comptes connectés</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-number">{{ stats.active_accounts }}</div>
+                <div class="stat-label">Comptes actifs</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-number">{{ stats.pending_accounts }}</div>
+                <div class="stat-label">En attente</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Create User -->
+          <div class="dashboard-card">
+            <h3>Créer un utilisateur</h3>
+            <form class="admin-form" method="POST" action="/users/admin/create">
+              <div class="form-group">
+                <label for="username">Nom d'utilisateur *</label>
+                <input
+                  type="text"
+                  id="username"
+                  name="username"
+                  class="form-input"
+                  required
+                  minlength="3"
+                  pattern="[a-zA-Z0-9]+"
+                  placeholder="Nom d'utilisateur"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="email">Email *</label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  class="form-input"
+                  required
+                  placeholder="email@example.com"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="password">Mot de passe *</label>
+                <input
+                  type="password"
+                  id="password"
+                  name="password"
+                  class="form-input"
+                  required
+                  minlength="8"
+                  placeholder="Mot de passe"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="full_name">Nom complet</label>
+                <input
+                  type="text"
+                  id="full_name"
+                  name="full_name"
+                  class="form-input"
+                  placeholder="Nom complet"
+                />
+              </div>
+
+              <div class="form-group checkbox-group">
+                <label class="checkbox-label">
+                  <input
+                    type="checkbox"
+                    id="is_admin"
+                    name="is_admin"
+                    value="true"
+                  />
+                  <span class="checkmark"></span>
+                  Accès administrateur
+                </label>
+              </div>
+
+              <button type="submit" class="btn btn-primary">
+                Créer l'utilisateur
+              </button>
+            </form>
+          </div>
+
+          <!-- Recent Connections -->
+          <div class="dashboard-card">
+            <h3>Connexions récentes</h3>
+            {% if recent_connections %}
+            <div class="connections-list">
+              {% for connection in recent_connections %}
+              <div class="connection-item">
+                <div class="connection-info">
+                  <div
+                    class="connection-status {{ 'connected' if connection.status == 'CREATION_SUCCESS' else 'pending' }}"
+                  >
+                    {{ 'Connecté' if connection.status == 'CREATION_SUCCESS'
+                    else connection.status }}
+                  </div>
+                  <div class="connection-details">
+                    <strong>{{ connection.provider }}</strong>
+                    <span>ID: {{ connection.account_id }}</span>
+                  </div>
+                </div>
+                <div class="connection-date">
+                  {{ connection.connected_at.strftime('%d/%m/%Y %H:%M') }}
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+              <p>Aucune connexion récente</p>
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- User Management -->
+          <div class="dashboard-card full-width">
+            <h3>Gestion des utilisateurs</h3>
+            {% if users %}
+            <div class="users-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Nom d'utilisateur</th>
+                    <th>Email</th>
+                    <th>Nom complet</th>
+                    <th>Statut</th>
+                    <th>Rôle</th>
+                    <th>Créé le</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for user in users %}
+                  <tr>
+                    <td>{{ user.id }}</td>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.full_name or '-' }}</td>
+                    <td>
+                      <span
+                        class="status-badge {{ 'active' if user.is_active else 'inactive' }}"
+                      >
+                        {{ 'Actif' if user.is_active else 'Inactif' }}
+                      </span>
+                    </td>
+                    <td>
+                      <span
+                        class="role-badge {{ 'admin' if user.is_admin else 'user' }}"
+                      >
+                        {{ 'Admin' if user.is_admin else 'Utilisateur' }}
+                      </span>
+                    </td>
+                    <td>{{ user.created_at.strftime('%d/%m/%Y') }}</td>
+                    <td>
+                      <button
+                        class="btn btn-small"
+                        onclick="editUser({{ user.id }}, '{{ user.username }}', '{{ user.email }}', '{{ user.full_name or '' }}', {{ user.is_active|lower }}, {{ user.is_admin|lower }})"
+                      >
+                        Modifier
+                      </button>
+                      {% if user.id != current_user.id %}
+                      <button
+                        class="btn btn-small btn-danger"
+                        onclick="deleteUser({{ user.id }}, '{{ user.username }}')"
+                      >
+                        Supprimer
+                      </button>
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+              <p>Aucun utilisateur trouvé</p>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Edit User Modal -->
+    <div id="editUserModal" class="modal" style="display: none">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Modifier l'utilisateur</h3>
+          <span class="close" onclick="closeEditModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+          <form id="editUserForm" method="POST">
+            <div class="form-group">
+              <label for="edit_username">Nom d'utilisateur</label>
+              <input
+                type="text"
+                id="edit_username"
+                class="form-input"
+                disabled
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="edit_email">Email *</label>
+              <input
+                type="email"
+                id="edit_email"
+                name="email"
+                class="form-input"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="edit_full_name">Nom complet</label>
+              <input
+                type="text"
+                id="edit_full_name"
+                name="full_name"
+                class="form-input"
+              />
+            </div>
+
+            <div class="form-group checkbox-group">
+              <label class="checkbox-label">
+                <input
+                  type="checkbox"
+                  id="edit_is_active"
+                  name="is_active"
+                  value="true"
+                />
+                <span class="checkmark"></span>
+                Compte actif
+              </label>
+            </div>
+
+            <div class="form-group checkbox-group">
+              <label class="checkbox-label">
+                <input
+                  type="checkbox"
+                  id="edit_is_admin"
+                  name="is_admin"
+                  value="true"
+                />
+                <span class="checkmark"></span>
+                Accès administrateur
+              </label>
+            </div>
+
+            <div class="modal-actions">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                onclick="closeEditModal()"
+              >
+                Annuler
+              </button>
+              <button type="submit" class="btn btn-primary">
+                Mettre à jour
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <span>© <span id="year"></span> Unipile Connect</span>
+        <a href="#">Confidentialité</a>
+      </div>
+    </footer>
+
+    <script>
+      document.getElementById("year").textContent = new Date().getFullYear();
+
+      // Edit user modal
+      function editUser(id, username, email, fullName, isActive, isAdmin) {
+        document.getElementById("edit_username").value = username;
+        document.getElementById("edit_email").value = email;
+        document.getElementById("edit_full_name").value = fullName;
+        document.getElementById("edit_is_active").checked = isActive;
+        document.getElementById("edit_is_admin").checked = isAdmin;
+
+        document.getElementById(
+          "editUserForm"
+        ).action = `/users/admin/update/${id}`;
+        document.getElementById("editUserModal").style.display = "block";
+      }
+
+      function closeEditModal() {
+        document.getElementById("editUserModal").style.display = "none";
+      }
+
+      // Delete user
+      function deleteUser(id, username) {
+        if (
+          confirm(
+            `Êtes-vous sûr de vouloir supprimer l'utilisateur "${username}" ?`
+          )
+        ) {
+          fetch(`/users/admin/delete/${id}`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.success) {
+                location.reload();
+              } else {
+                alert("Erreur lors de la suppression: " + data.error);
+              }
+            })
+            .catch((error) => {
+              console.error("Error:", error);
+              alert("Erreur lors de la suppression");
+            });
+        }
+      }
+
+      // Close modal when clicking outside
+      window.onclick = function (event) {
+        const modal = document.getElementById("editUserModal");
+        if (event.target == modal) {
+          closeEditModal();
+        }
+      };
+
+      // Form validation
+      const forms = document.querySelectorAll("form");
+      forms.forEach((form) => {
+        form.addEventListener("submit", function (e) {
+          const requiredFields = form.querySelectorAll("[required]");
+          let isValid = true;
+
+          requiredFields.forEach((field) => {
+            if (!field.value.trim()) {
+              field.classList.add("invalid");
+              isValid = false;
+            } else {
+              field.classList.remove("invalid");
+            }
+          });
+
+          if (!isValid) {
+            e.preventDefault();
+            alert("Veuillez remplir tous les champs obligatoires");
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Créer un compte - Unipile Connect</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner">
+        <div class="brand">
+          <div class="logo">U</div>
+          <span class="brand-text">Unipile Connect</span>
+        </div>
+        <nav class="nav">
+          <a href="/#features">Fonctionnalités</a>
+          <a href="/#providers">Plateformes</a>
+          <a href="/#how">Comment ça marche</a>
+          <a href="/login">Se connecter</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <div class="container">
+        <div class="register-card">
+          <div class="logo">
+            <h1>Unipile Connect</h1>
+          </div>
+
+          <h2>Créer un compte</h2>
+          <p class="subtitle">
+            Rejoignez-nous pour gérer vos connexions sociales
+          </p>
+
+          {% if error %}
+          <div class="error-banner">{{ error }}</div>
+          {% endif %}
+
+          <form
+            method="POST"
+            action="/users/register"
+            class="register-form"
+            id="registerForm"
+          >
+            <div class="form-group">
+              <label for="username">Nom d'utilisateur *</label>
+              <input
+                type="text"
+                id="username"
+                name="username"
+                placeholder="Choisissez un nom d'utilisateur unique"
+                required
+                minlength="3"
+                maxlength="30"
+              />
+              <small>3-30 caractères, lettres et chiffres uniquement</small>
+            </div>
+
+            <div class="form-group">
+              <label for="email">Email *</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                placeholder="votre.email@exemple.com"
+                required
+              />
+              <small>Nous ne partagerons jamais votre email</small>
+            </div>
+
+            <div class="form-group">
+              <label for="full_name">Nom complet</label>
+              <input
+                type="text"
+                id="full_name"
+                name="full_name"
+                placeholder="Votre nom complet"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="password">Mot de passe *</label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                placeholder="Créez un mot de passe sécurisé"
+                required
+                minlength="8"
+              />
+              <small>Minimum 8 caractères</small>
+            </div>
+
+            <div class="form-group">
+              <label for="confirm_password">Confirmer le mot de passe *</label>
+              <input
+                type="password"
+                id="confirm_password"
+                name="confirm_password"
+                placeholder="Confirmez votre mot de passe"
+                required
+              />
+              <small id="password-match"></small>
+            </div>
+
+            <div class="form-group checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="terms" name="terms" required />
+                <span class="checkmark"></span>
+                J'accepte les conditions d'utilisation et la politique de
+                confidentialité
+              </label>
+            </div>
+
+            <button type="submit" class="btn-primary">Créer mon compte</button>
+          </form>
+
+          <div class="auth-links">
+            <p>Déjà un compte ? <a href="/login">Se connecter</a></p>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <span>© <span id="year"></span> Unipile Connect</span>
+        <a href="#">Confidentialité</a>
+      </div>
+    </footer>
+
+    <script>
+      document.getElementById("year").textContent = new Date().getFullYear();
+
+      // Password confirmation validation
+      const password = document.getElementById("password");
+      const confirmPassword = document.getElementById("confirm_password");
+      const passwordMatch = document.getElementById("password-match");
+
+      function validatePassword() {
+        if (password.value === confirmPassword.value) {
+          passwordMatch.textContent = "✅ Les mots de passe correspondent";
+          passwordMatch.style.color = "#10b981";
+          confirmPassword.style.borderColor = "#10b981";
+        } else {
+          passwordMatch.textContent =
+            "❌ Les mots de passe ne correspondent pas";
+          passwordMatch.style.color = "#ef4444";
+          confirmPassword.style.borderColor = "#ef4444";
+        }
+      }
+
+      password.addEventListener("input", validatePassword);
+      confirmPassword.addEventListener("input", validatePassword);
+
+      // Form validation
+      document
+        .getElementById("registerForm")
+        .addEventListener("submit", function (e) {
+          if (password.value !== confirmPassword.value) {
+            e.preventDefault();
+            alert("Les mots de passe ne correspondent pas");
+            return false;
+          }
+
+          if (!document.getElementById("terms").checked) {
+            e.preventDefault();
+            alert("Vous devez accepter les conditions d'utilisation");
+            return false;
+          }
+        });
+    </script>
+  </body>
+</html>
