@@ -4,6 +4,7 @@ User management routes for Unipile Connect
 from fastapi import APIRouter, Depends, HTTPException, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from pathlib import Path
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -13,7 +14,9 @@ from app.schemas import UserCreate, UserUpdate, AdminUserCreate, AdminUserUpdate
 import re
 
 router = APIRouter()
-templates = Jinja2Templates(directory="app/templates")
+# Use absolute path to avoid template lookup issues in staging
+TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
+templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 @router.get("/register", response_class=HTMLResponse)
 async def register_page(request: Request):
