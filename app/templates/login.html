@@ -1,52 +1,65 @@
 <!DOCTYPE html>
 <html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Connexion - Unipile Connect</title>
-    <link rel="stylesheet" href="/css/styles.css">
-</head>
-<body>
+    <link rel="stylesheet" href="/static/css/styles.css?v=1" />
+  </head>
+  <body>
     <div class="container">
-        <div class="login-card">
-            <div class="logo">
-                <h1>Unipile Connect</h1>
-            </div>
-            
-            <h2>Connexion</h2>
-            <p class="subtitle">Connectez-vous pour accéder à votre tableau de bord</p>
-            
-            {% if error %}
-            <div class="error-banner">
-                {{ error }}
-            </div>
-            {% endif %}
-            
-            {% if request.query_params.get('success') == 'account_created' %}
-            <div class="success-banner">
-                ✅ Compte créé avec succès ! Vous pouvez maintenant vous connecter.
-            </div>
-            {% endif %}
-            
-            <form method="POST" action="/login" class="login-form">
-                <div class="form-group">
-                    <label for="username">Nom d'utilisateur</label>
-                    <input type="text" id="username" name="username" placeholder="Entrez votre nom d'utilisateur" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="password">Mot de passe</label>
-                    <input type="password" id="password" name="password" placeholder="Entrez votre mot de passe" required>
-                </div>
-                
-                <button type="submit" class="btn-primary">Se connecter</button>
-            </form>
-            
-            <div class="auth-links">
-                <p>Pas encore de compte ? <a href="/users/register">Créer un compte</a></p>
-                <p><a href="/users/forgot-password">Mot de passe oublié ?</a></p>
-            </div>
+      <div class="login-card">
+        <div class="logo">
+          <h1>Unipile Connect</h1>
         </div>
+
+        <h2>Connexion</h2>
+        <p class="subtitle">
+          Connectez-vous pour accéder à votre tableau de bord
+        </p>
+
+        {% if error %}
+        <div class="error-banner">{{ error }}</div>
+        {% endif %} {% if request.query_params.get('success') ==
+        'account_created' %}
+        <div class="success-banner">
+          ✅ Compte créé avec succès ! Vous pouvez maintenant vous connecter.
+        </div>
+        {% endif %}
+
+        <form method="POST" action="/login" class="login-form">
+          <div class="form-group">
+            <label for="username">Nom d'utilisateur</label>
+            <input
+              type="text"
+              id="username"
+              name="username"
+              placeholder="Entrez votre nom d'utilisateur"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="password">Mot de passe</label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              placeholder="Entrez votre mot de passe"
+              required
+            />
+          </div>
+
+          <button type="submit" class="btn btn-primary">Se connecter</button>
+        </form>
+
+        <div class="auth-links">
+          <p>
+            Pas encore de compte ? <a href="/users/register">Créer un compte</a>
+          </p>
+          <p><a href="/users/forgot-password">Mot de passe oublié ?</a></p>
+        </div>
+      </div>
     </div>
-</body>
+  </body>
 </html>
