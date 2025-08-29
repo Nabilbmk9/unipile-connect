@@ -2,14 +2,23 @@
 Database configuration and models for Unipile Connect
 """
 import os
+from pathlib import Path
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean, Text, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.sql import func
 from datetime import datetime, timezone
 
-# Database URL - use environment variable or default to SQLite
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./unipile_connect.db")
+# Database URL - use environment variable or default to SQLite under a persistent data dir
+# Default path: ./data/unipile_connect.db (relative to project/app root)
+_default_data_dir = Path(__file__).resolve().parents[1] / "data"
+try:
+    _default_data_dir.mkdir(parents=True, exist_ok=True)
+except Exception:
+    # In restricted environments the dir may already exist or be non-creatable; ignore
+    pass
+_default_sqlite_url = f"sqlite:///{(_default_data_dir / 'unipile_connect.db').as_posix()}"
+DATABASE_URL = os.getenv("DATABASE_URL", _default_sqlite_url)
 
 # Create engine
 engine = create_engine(

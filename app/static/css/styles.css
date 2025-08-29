@@ -747,6 +747,117 @@ body {
   line-height: 1.6;
 }
 
+/* Dashboard styles */
+.dashboard-hero .dashboard-header h1 {
+  font-size: 32px;
+  margin: 14px 0 6px;
+}
+.dashboard-hero .dashboard-header p {
+  color: var(--muted);
+  margin: 0 0 22px;
+}
+.dashboard-content .dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+.dashboard-card {
+  border: 1px solid var(--stroke);
+  background: var(--bg-soft);
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 6px 16px rgba(2, 6, 23, 0.04);
+}
+.dashboard-card h3 {
+  margin: 0 0 10px;
+}
+.action-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.accounts-list {
+  display: grid;
+  gap: 10px;
+}
+.account-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--stroke);
+  border-radius: 12px;
+  background: #f8fafc;
+}
+.account-status.connected {
+  color: #065f46;
+}
+.account-status.pending {
+  color: #92400e;
+}
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-block;
+  margin-right: 6px;
+}
+.status-dot.connected {
+  background: #10b981;
+}
+.status-dot.pending {
+  background: #f59e0b;
+}
+.account-actions .btn-danger {
+  background: #fee2e2;
+  border-color: #fecaca;
+}
+.empty-state {
+  color: var(--muted);
+}
+
+/* Modal */
+.modal {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(2, 6, 23, 0.35);
+  display: none;
+}
+.modal-content {
+  width: min(720px, 92vw);
+  margin: 10vh auto;
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid var(--stroke);
+  box-shadow: 0 20px 60px rgba(2, 6, 23, 0.25);
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--stroke);
+}
+.modal-body {
+  padding: 16px;
+}
+.close {
+  cursor: pointer;
+  font-size: 22px;
+}
+.raw-data {
+  max-height: 40vh;
+  overflow: auto;
+  background: #0b1020;
+  color: #e2e8f0;
+  padding: 12px;
+  border-radius: 10px;
+}
+
 /* Responsive adjustments */
 @media (max-width: 900px) {
   .hero {
