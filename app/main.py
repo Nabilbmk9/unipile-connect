@@ -37,7 +37,7 @@ templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 # ---------- Config Unipile / App
 UNIPILE_API_BASE = os.getenv("UNIPILE_API_BASE", "").strip().rstrip("/")  # ex: https://api8.unipile.com:13816/api/v1
-UNIPILE_API_HOST = os.getenv("UNIPILE_API_HOST", "").strip().rstrip("/")  # ex: https://account.unipile.com
+UNIPILE_API_HOST = os.getenv("UNIPILE_API_HOST", "").strip().rstrip("/")  # ex: https://api8.unipile.com:13816 (SANS /api/v1)
 UNIPILE_API_KEY = os.getenv("UNIPILE_API_KEY", "")
 _raw_app_base = os.getenv("APP_BASE_URL", "http://127.0.0.1:8000").strip()
 if not _raw_app_base.startswith("http"):
@@ -50,6 +50,9 @@ SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-this")
 SUCCESS_URL = f"{APP_BASE_URL}/connect/success"
 FAILURE_URL = f"{APP_BASE_URL}/connect/failure"
 NOTIFY_URL  = f"{APP_BASE_URL}/unipile/notify"
+
+# ---------- V1: stockage en mémoire pour debug/visualisation
+CONNECTED_ACCOUNTS: Dict[str, Dict[str, Any]] = {}
 
 # Import database and auth first
 from .database import get_db, ConnectedAccount, User, create_tables
@@ -99,7 +102,7 @@ def iso8601_millis(dt: datetime) -> str:
     """YYYY-MM-DDTHH:MM:SS.sssZ (UTC, millisecondes)."""
     dt = dt.astimezone(timezone.utc)
     ms = int(dt.microsecond / 1000)
-    return dt.strftime(f"%Y-%m-%dT%H:MM:%S.{ms:03d}Z")
+    return dt.strftime(f"%Y-%m-%dT%H:%M:%S.{ms:03d}Z")
 
 # ---------- Pages
 @app.get("/", response_class=HTMLResponse)
@@ -208,46 +211,50 @@ async def connect_linkedin(request: Request, db: Session = Depends(get_db)):
     user_session = get_current_user_session(request, db)
     if not user_session:
         return RedirectResponse(url="/login", status_code=303)
-    
-    # Redirect to Unipile LinkedIn connection (ensure correct host)
-    connect_host = UNIPILE_API_HOST or "https://account.unipile.com"
-    if ("unipile" in connect_host and ("api." in connect_host or "api8." in connect_host or "/api" in connect_host)):
-        connect_host = "https://account.unipile.com"
-    unipile_url = f"{connect_host}/auth/linkedin"
-    params = {
-        "client_id": UNIPILE_API_KEY,
-        "redirect_uri": SUCCESS_URL,
-        "state": user_session.user_id,  # Pass user ID in state
-        "scope": "r_liteprofile r_emailaddress w_member_social"
+
+    # Validation de config
+    if not (UNIPILE_API_BASE and UNIPILE_API_HOST and UNIPILE_API_KEY):
+        raise HTTPException(
+            status_code=500,
+            detail="Config manquante: UNIPILE_API_BASE, UNIPILE_API_HOST ou UNIPILE_API_KEY.",
+        )
+
+    # Lien valable 15 minutes (Unipile conseille de régénérer à chaque clic)
+    expires_on = iso8601_millis(datetime.now(timezone.utc) + timedelta(minutes=15))
+
+    payload = {
+        "type": "create",
+        "providers": ["LINKEDIN"],
+        "api_url": UNIPILE_API_HOST,  # SANS /api/v1
+        "expiresOn": expires_on,
+        "success_redirect_url": SUCCESS_URL,
+        "failure_redirect_url": FAILURE_URL,
+        "notify_url": NOTIFY_URL,
+        "name": str(user_session.user_id),  # associer l'utilisateur courant
     }
 
-    # Preferred: ask Unipile API to generate a signed redirect URL
-    # This typically returns an encoded one-time link hosted on account.unipile.com
     try:
-        if UNIPILE_API_BASE:
-            api_link = f"{UNIPILE_API_BASE}/auth/linkedin"
-            api_resp = requests.get(api_link, params=params, timeout=12)
-            if api_resp.ok:
-                data = {}
-                try:
-                    data = api_resp.json()
-                except Exception:
-                    data = {}
-                signed_url = (
-                    data.get("url")
-                    or data.get("redirectUrl")
-                    or data.get("redirect")
-                    or data.get("link")
-                )
-                if signed_url:
-                    return RedirectResponse(url=signed_url, status_code=302)
-    except Exception as e:
-        print(f"⚠️ Could not fetch signed Unipile link: {e}")
+        resp = requests.post(
+            f"{UNIPILE_API_BASE}/hosted/accounts/link",
+            headers={
+                "X-API-KEY": UNIPILE_API_KEY,
+                "accept": "application/json",
+                "content-type": "application/json",
+            },
+            json=payload,
+            timeout=30,
+        )
+    except requests.RequestException as e:
+        raise HTTPException(status_code=502, detail=f"Erreur réseau Unipile: {e}")
 
-    # Fallback: build direct account link with encoded query
-    query_string = urlencode(params)
-    full_url = f"{unipile_url}?{query_string}"
-    return RedirectResponse(url=full_url, status_code=302)
+    if resp.status_code >= 400:
+        raise HTTPException(status_code=502, detail=f"Unipile error: {resp.text}")
+
+    url = resp.json().get("url")
+    if not url:
+        raise HTTPException(status_code=502, detail=f"Réponse Unipile invalide: {resp.text}")
+
+    return RedirectResponse(url, status_code=302)
 
 @app.get("/connect/success")
 async def connect_success(
@@ -258,56 +265,56 @@ async def connect_success(
     db: Session = Depends(get_db)
 ):
     if error:
-        return RedirectResponse(url=f"{FAILURE_URL}?error={error}", status_code=302)
-    
-    if not code or not state:
-        return RedirectResponse(url=f"{FAILURE_URL}?error=missing_parameters", status_code=302)
-    
+        return templates.TemplateResponse("failure.html", {"request": request, "error": error})
+
+    # Hosted flow (no code/state expected): just show summary page
+    if not code and not state:
+        return templates.TemplateResponse(
+            "success.html",
+            {"request": request, "accounts": CONNECTED_ACCOUNTS},
+        )
+
+    # Fallback: if code/state present from an OAuth-like flow, keep legacy behavior
     try:
-        # Exchange code for access token
         token_url = f"{UNIPILE_API_BASE}/auth/access_token"
         token_data = {
             "grant_type": "authorization_code",
             "client_id": UNIPILE_API_KEY,
             "code": code,
-            "redirect_uri": SUCCESS_URL
+            "redirect_uri": SUCCESS_URL,
         }
-        
-        token_response = requests.post(token_url, data=token_data)
+        token_response = requests.post(token_url, data=token_data, timeout=20)
         token_response.raise_for_status()
         token_info = token_response.json()
-        
-        # Get user profile
+
         profile_url = f"{UNIPILE_API_BASE}/me"
         headers = {"Authorization": f"Bearer {token_info['access_token']}"}
-        profile_response = requests.get(profile_url, headers=headers)
+        profile_response = requests.get(profile_url, headers=headers, timeout=20)
         profile_response.raise_for_status()
         profile_info = profile_response.json()
-        
-        # Store connected account
-        user_id = int(state)
-        account = ConnectedAccount(
-            account_id=profile_info.get("id", ""),
-            user_id=user_id,
-            provider="LINKEDIN",
-            status="CREATION_SUCCESS",
-            account_data=str(profile_info),
-            last_sync=datetime.now(timezone.utc)
+
+        user_id = int(state) if state and state.isdigit() else None
+        if user_id is not None:
+            account = ConnectedAccount(
+                account_id=profile_info.get("id", ""),
+                user_id=user_id,
+                provider="LINKEDIN",
+                status="CREATION_SUCCESS",
+                account_data=str(profile_info),
+                last_sync=datetime.now(timezone.utc),
+            )
+            db.add(account)
+            db.commit()
+
+        return templates.TemplateResponse(
+            "success.html",
+            {"request": request, "provider": "LinkedIn", "account_info": profile_info},
         )
-        
-        db.add(account)
-        db.commit()
-        
-        return templates.TemplateResponse("success.html", {
-            "request": request,
-            "provider": "LinkedIn",
-            "account_info": profile_info
-        })
-        
-    except requests.RequestException as e:
-        return RedirectResponse(url=f"{FAILURE_URL}?error=api_error", status_code=302)
-    except Exception as e:
-        return RedirectResponse(url=f"{FAILURE_URL}?error=unknown_error", status_code=302)
+
+    except requests.RequestException:
+        return templates.TemplateResponse("failure.html", {"request": request, "error": "api_error"})
+    except Exception:
+        return templates.TemplateResponse("failure.html", {"request": request, "error": "unknown_error"})
 
 @app.get("/connect/failure")
 async def connect_failure(request: Request, error: str = None):
@@ -322,36 +329,45 @@ async def unipile_notify(
     body: Dict[str, Any] = Body(...),
     db: Session = Depends(get_db)
 ):
-    """Handle Unipile webhook notifications"""
+    """Handle Unipile webhook notifications (Hosted Auth)."""
     try:
-        # Extract notification data
-        notification_type = body.get("type")
-        account_id = body.get("account_id")
         status = body.get("status")
-        details = body.get("details", {})
-        
-        if notification_type == "account_status_changed" and account_id:
-            # Update or create connected account
-            existing_account = db.query(ConnectedAccount).filter(
-                ConnectedAccount.account_id == account_id
-            ).first()
-            
-            if existing_account:
-                # Update existing account
-                existing_account.status = status
-                existing_account.account_data = str(details)
-                existing_account.last_sync = datetime.now(timezone.utc)
+        account_id = body.get("account_id") or body.get("accountId")
+        user_ref = body.get("name")  # we set this to current user id in /connect/linkedin
+
+        # V1: stock en mémoire pour visualiser sur /connect/success
+        key = account_id or f"evt:{len(CONNECTED_ACCOUNTS) + 1}"
+        CONNECTED_ACCOUNTS[key] = {"status": status, "user": user_ref, "raw": body}
+
+        # Persist to DB when possible
+        if account_id:
+            existing = db.query(ConnectedAccount).filter(ConnectedAccount.account_id == account_id).first()
+            if existing:
+                existing.status = status or existing.status
+                existing.account_data = str(body)
+                existing.last_sync = datetime.now(timezone.utc)
             else:
-                # Create new account (if we have user info)
-                # For now, we'll create a placeholder
-                pass
-            
+                # Try link to a user if the webhook provides one (we passed it in name)
+                try:
+                    user_id = int(user_ref) if user_ref is not None and str(user_ref).isdigit() else None
+                except Exception:
+                    user_id = None
+                if user_id is not None:
+                    new_acc = ConnectedAccount(
+                        account_id=account_id,
+                        user_id=user_id,
+                        provider="LINKEDIN",
+                        status=status or "CREATION_SUCCESS",
+                        account_data=str(body),
+                        last_sync=datetime.now(timezone.utc),
+                    )
+                    db.add(new_acc)
             db.commit()
-        
-        return {"status": "success"}
-        
+
+        return {"ok": True}
+
     except Exception as e:
-        return {"status": "error", "message": str(e)}
+        return JSONResponse(status_code=500, content={"ok": False, "error": str(e)})
 
 if __name__ == "__main__":
     import uvicorn
