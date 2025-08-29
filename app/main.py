@@ -2,6 +2,7 @@
 import os
 import mimetypes
 from datetime import datetime, timedelta, timezone
+import json
 from pathlib import Path
 from typing import Dict, Any, Optional
 
@@ -156,17 +157,43 @@ async def dashboard_page(request: Request, db: Session = Depends(get_db)):
     user_session = get_current_user_session(request, db)
     if not user_session:
         return RedirectResponse(url="/login", status_code=303)
-    
-    # Get user's connected accounts
-    connected_accounts = db.query(ConnectedAccount).filter(
+
+    # Build dict of connected accounts keyed by account_id from DB + memory
+    db_accounts = db.query(ConnectedAccount).filter(
         ConnectedAccount.user_id == user_session.user_id
     ).all()
-    
-    return templates.TemplateResponse("dashboard.html", {
-        "request": request,
-        "user": user_session.user,
-        "connected_accounts": connected_accounts
-    })
+
+    accounts_dict: Dict[str, Dict[str, Any]] = {}
+    # Start with in-memory (from webhook) for immediate feedback
+    accounts_dict.update(CONNECTED_ACCOUNTS)
+
+    for acc in db_accounts:
+        # Preserve any in-memory status if already present
+        if acc.account_id not in accounts_dict:
+            try:
+                raw_obj = json.loads(acc.account_data) if acc.account_data else None
+            except Exception:
+                raw_obj = acc.account_data
+            accounts_dict[acc.account_id] = {
+                "status": acc.status,
+                "user": str(user_session.user_id),
+                "raw": raw_obj,
+            }
+
+    display_name = (
+        (user_session.user.full_name if getattr(user_session.user, "full_name", None) else None)
+        or getattr(user_session.user, "username", None)
+        or f"User {user_session.user_id}"
+    )
+
+    return templates.TemplateResponse(
+        "dashboard.html",
+        {
+            "request": request,
+            "current_user": display_name,
+            "connected_accounts": accounts_dict,
+        },
+    )
 
 @app.post("/disconnect/{account_id}")
 async def disconnect_account_route(
@@ -176,35 +203,43 @@ async def disconnect_account_route(
 ):
     user_session = get_current_user_session(request, db)
     if not user_session:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    
+        return JSONResponse(status_code=401, content={"success": False, "error": "Not authenticated"})
+
     success = disconnect_account(account_id, db)
     if success:
-        return {"message": "Account disconnected successfully"}
+        # Also remove from in-memory cache if present
+        if account_id in CONNECTED_ACCOUNTS:
+            CONNECTED_ACCOUNTS.pop(account_id, None)
+        return {"success": True}
     else:
-        raise HTTPException(status_code=404, detail="Account not found")
+        return JSONResponse(status_code=404, content={"success": False, "error": "Account not found"})
 
 @app.get("/api/accounts")
 async def get_user_accounts(request: Request, db: Session = Depends(get_db)):
     user_session = get_current_user_session(request, db)
     if not user_session:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    
-    connected_accounts = db.query(ConnectedAccount).filter(
+        return JSONResponse(status_code=401, content={"success": False, "error": "Not authenticated"})
+
+    db_accounts = db.query(ConnectedAccount).filter(
         ConnectedAccount.user_id == user_session.user_id
     ).all()
-    
-    return [
-        {
-            "id": account.id,
-            "account_id": account.account_id,
-            "provider": account.provider,
-            "status": account.status,
-            "connected_at": account.connected_at,
-            "last_sync": account.last_sync
-        }
-        for account in connected_accounts
-    ]
+
+    accounts_dict: Dict[str, Dict[str, Any]] = {}
+    accounts_dict.update(CONNECTED_ACCOUNTS)
+
+    for acc in db_accounts:
+        if acc.account_id not in accounts_dict:
+            try:
+                raw_obj = json.loads(acc.account_data) if acc.account_data else None
+            except Exception:
+                raw_obj = acc.account_data
+            accounts_dict[acc.account_id] = {
+                "status": acc.status,
+                "user": str(user_session.user_id),
+                "raw": raw_obj,
+            }
+
+    return {"success": True, "accounts": accounts_dict}
 
 @app.get("/connect/linkedin")
 async def connect_linkedin(request: Request, db: Session = Depends(get_db)):

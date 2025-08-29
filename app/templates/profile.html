@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/css/styles.css" />
+    <link rel="stylesheet" href="/static/css/styles.css?v=1" />
   </head>
   <body>
     <header class="site-header">
@@ -44,14 +44,12 @@
           <!-- Profile Information -->
           <div class="dashboard-card">
             <h3>Informations du profil</h3>
-            
+
             {% if success %}
             <div class="success-message">
               <p>{{ success }}</p>
             </div>
-            {% endif %}
-
-            {% if error %}
+            {% endif %} {% if error %}
             <div class="error-message">
               <p>{{ error }}</p>
             </div>
@@ -115,8 +113,12 @@
           <!-- Change Password -->
           <div class="dashboard-card">
             <h3>Changer le mot de passe</h3>
-            
-            <form class="password-form" method="POST" action="/users/change-password">
+
+            <form
+              class="password-form"
+              method="POST"
+              action="/users/change-password"
+            >
               <div class="form-group">
                 <label for="current_password">Mot de passe actuel *</label>
                 <input
@@ -144,7 +146,9 @@
               </div>
 
               <div class="form-group">
-                <label for="confirm_password">Confirmer le nouveau mot de passe *</label>
+                <label for="confirm_password"
+                  >Confirmer le nouveau mot de passe *</label
+                >
                 <input
                   type="password"
                   id="confirm_password"
@@ -164,26 +168,31 @@
           <!-- Account Status -->
           <div class="dashboard-card">
             <h3>Statut du compte</h3>
-            
+
             <div class="account-status-info">
               <div class="status-item">
                 <span class="status-label">Statut:</span>
-                <span class="status-value {{ 'active' if user.is_active else 'inactive' }}">
+                <span
+                  class="status-value {{ 'active' if user.is_active else 'inactive' }}"
+                >
                   {{ 'Actif' if user.is_active else 'Inactif' }}
                 </span>
               </div>
-              
+
               <div class="status-item">
                 <span class="status-label">Rôle:</span>
-                <span class="status-value {{ 'admin' if user.is_admin else 'user' }}">
+                <span
+                  class="status-value {{ 'admin' if user.is_admin else 'user' }}"
+                >
                   {{ 'Administrateur' if user.is_admin else 'Utilisateur' }}
                 </span>
               </div>
-              
+
               <div class="status-item">
                 <span class="status-label">Dernière mise à jour:</span>
                 <span class="status-value">
-                  {{ user.updated_at.strftime('%d/%m/%Y %H:%M') if user.updated_at else 'Jamais' }}
+                  {{ user.updated_at.strftime('%d/%m/%Y %H:%M') if
+                  user.updated_at else 'Jamais' }}
                 </span>
               </div>
             </div>
@@ -192,7 +201,7 @@
               <a href="/dashboard" class="btn btn-primary">
                 Retour au tableau de bord
               </a>
-              
+
               {% if user.is_admin %}
               <a href="/users/admin" class="btn btn-secondary">
                 Administration
@@ -215,46 +224,48 @@
       document.getElementById("year").textContent = new Date().getFullYear();
 
       // Password confirmation validation
-      const newPassword = document.getElementById('new_password');
-      const confirmPassword = document.getElementById('confirm_password');
-      const passwordForm = document.querySelector('.password-form');
+      const newPassword = document.getElementById("new_password");
+      const confirmPassword = document.getElementById("confirm_password");
+      const passwordForm = document.querySelector(".password-form");
 
       function validatePassword() {
         if (newPassword.value !== confirmPassword.value) {
-          confirmPassword.setCustomValidity('Les mots de passe ne correspondent pas');
+          confirmPassword.setCustomValidity(
+            "Les mots de passe ne correspondent pas"
+          );
         } else {
-          confirmPassword.setCustomValidity('');
+          confirmPassword.setCustomValidity("");
         }
       }
 
-      newPassword.addEventListener('change', validatePassword);
-      confirmPassword.addEventListener('keyup', validatePassword);
+      newPassword.addEventListener("change", validatePassword);
+      confirmPassword.addEventListener("keyup", validatePassword);
 
       // Form validation
-      passwordForm.addEventListener('submit', function(e) {
+      passwordForm.addEventListener("submit", function (e) {
         if (newPassword.value !== confirmPassword.value) {
           e.preventDefault();
-          alert('Les nouveaux mots de passe ne correspondent pas');
+          alert("Les nouveaux mots de passe ne correspondent pas");
           return false;
         }
-        
+
         if (newPassword.value.length < 8) {
           e.preventDefault();
-          alert('Le nouveau mot de passe doit contenir au moins 8 caractères');
+          alert("Le nouveau mot de passe doit contenir au moins 8 caractères");
           return false;
         }
       });
 
       // Real-time validation feedback
-      const inputs = document.querySelectorAll('.form-input:not([disabled])');
-      inputs.forEach(input => {
-        input.addEventListener('blur', function() {
+      const inputs = document.querySelectorAll(".form-input:not([disabled])");
+      inputs.forEach((input) => {
+        input.addEventListener("blur", function () {
           if (this.checkValidity()) {
-            this.classList.remove('invalid');
-            this.classList.add('valid');
+            this.classList.remove("invalid");
+            this.classList.add("valid");
           } else {
-            this.classList.remove('valid');
-            this.classList.add('invalid');
+            this.classList.remove("valid");
+            this.classList.add("invalid");
           }
         });
       });
