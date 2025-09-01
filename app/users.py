@@ -8,8 +8,30 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 from typing import List
 
-from app.database import get_db, User
+from app.database import get_db, User, PasswordResetToken
 from app.auth import get_current_user_session, get_password_hash, verify_password, get_user_by_username, get_user_by_email, create_user
+from datetime import datetime, timedelta, timezone
+import os
+import smtplib
+import ssl
+from email.message import EmailMessage
+import secrets
+def _is_expired(expires_at: datetime) -> bool:
+    """Return True if expires_at is in the past. Handles naive datetimes from SQLite.
+
+    Some SQLite drivers drop timezone info. If the datetime is naive, we
+    assume it's in UTC and attach tzinfo=UTC before comparing.
+    """
+    now_utc = datetime.now(timezone.utc)
+    if isinstance(expires_at, datetime):
+        dt = expires_at
+        if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        else:
+            dt = dt.astimezone(timezone.utc)
+        return dt < now_utc
+    # If for some reason it's not a datetime, consider it expired
+    return True
 from app.schemas import UserCreate, UserUpdate, AdminUserCreate, AdminUserUpdate
 import re
 
@@ -91,20 +113,131 @@ async def forgot_password_page(request: Request):
 
 @router.post("/forgot-password")
 async def forgot_password(
+    request: Request,
     email: str = Form(...),
     db: Session = Depends(get_db)
 ):
-    # In a real app, you would send a password reset email
-    # For now, we'll just show a success message
+    # Generic response to avoid account enumeration
+    generic_message = "Si un compte existe avec cet email, vous recevrez un lien de réinitialisation"
+
     user = get_user_by_email(db, email)
+    debug_reset_url = None
     if user:
-        # Here you would generate a reset token and send email
-        pass
-    
-    return templates.TemplateResponse("forgot_password.html", {
-        "request": request,
-        "success": "Si un compte existe avec cet email, vous recevrez un lien de réinitialisation"
-    })
+        # Invalidate existing tokens for this user
+        db.query(PasswordResetToken).filter(
+            PasswordResetToken.user_id == user.id,
+            PasswordResetToken.used == False
+        ).delete(synchronize_session=False)
+
+        # Create new token valid for 30 minutes
+        token = secrets.token_urlsafe(48)
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=30)
+        prt = PasswordResetToken(user_id=user.id, token=token, expires_at=expires_at)
+        db.add(prt)
+        db.commit()
+
+        # Build reset URL
+        from app.main import APP_BASE_URL
+        reset_url = f"{APP_BASE_URL}/users/reset-password?token={token}"
+
+        # Attempt to send email if SMTP is configured; otherwise log
+        smtp_host = os.getenv("SMTP_HOST")
+        smtp_port = int(os.getenv("SMTP_PORT", "587"))
+        smtp_user = os.getenv("SMTP_USER")
+        smtp_password = os.getenv("SMTP_PASSWORD")
+        smtp_from = os.getenv("SMTP_FROM", smtp_user or "no-reply@example.com")
+        use_tls = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
+
+        if smtp_host and smtp_user and smtp_password:
+            try:
+                msg = EmailMessage()
+                msg["Subject"] = "Lien de réinitialisation du mot de passe"
+                msg["From"] = smtp_from
+                msg["To"] = email
+                msg.set_content(
+                    f"Bonjour,\n\nCliquez sur ce lien pour réinitialiser votre mot de passe: {reset_url}\n\nCe lien expire dans 30 minutes.\n\nSi vous n'êtes pas à l'origine de cette demande, ignorez cet email."
+                )
+
+                if use_tls:
+                    context = ssl.create_default_context()
+                    with smtplib.SMTP(smtp_host, smtp_port, timeout=20) as server:
+                        server.starttls(context=context)
+                        server.login(smtp_user, smtp_password)
+                        server.send_message(msg)
+                else:
+                    with smtplib.SMTP(smtp_host, smtp_port, timeout=20) as server:
+                        server.login(smtp_user, smtp_password)
+                        server.send_message(msg)
+                print(f"[PasswordReset] Email sent to {email}")
+            except Exception as e:
+                print(f"[PasswordReset] Email send failed for {email}: {e}. Link: {reset_url}")
+        else:
+            print(f"[PasswordReset] Send reset link to {email}: {reset_url}")
+
+        # Optionally expose the link on the page in development
+        if os.getenv("SHOW_RESET_LINK_ON_PAGE", "false").lower() == "true":
+            debug_reset_url = reset_url
+
+    return templates.TemplateResponse(
+        "forgot_password.html",
+        {"request": request, "success": generic_message, "debug_reset_url": debug_reset_url},
+    )
+
+@router.get("/reset-password", response_class=HTMLResponse)
+async def reset_password_page(request: Request, token: str, db: Session = Depends(get_db)):
+    # Validate token
+    prt = db.query(PasswordResetToken).filter(PasswordResetToken.token == token).first()
+    if not prt or prt.used or _is_expired(prt.expires_at):
+        return templates.TemplateResponse("forgot_password.html", {
+            "request": request,
+            "error": "Lien de réinitialisation invalide ou expiré"
+        })
+
+    return templates.TemplateResponse("reset_password.html", {"request": request, "token": token})
+
+@router.post("/reset-password")
+async def reset_password_submit(
+    request: Request,
+    token: str = Form(...),
+    new_password: str = Form(...),
+    confirm_password: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    # Validate token
+    prt = db.query(PasswordResetToken).filter(PasswordResetToken.token == token).first()
+    if not prt or prt.used or _is_expired(prt.expires_at):
+        return templates.TemplateResponse("forgot_password.html", {
+            "request": request,
+            "error": "Lien de réinitialisation invalide ou expiré"
+        })
+
+    if new_password != confirm_password:
+        return templates.TemplateResponse("reset_password.html", {
+            "request": request,
+            "token": token,
+            "error": "Les mots de passe ne correspondent pas"
+        })
+
+    if len(new_password) < 8:
+        return templates.TemplateResponse("reset_password.html", {
+            "request": request,
+            "token": token,
+            "error": "Le mot de passe doit contenir au moins 8 caractères"
+        })
+
+    user = db.query(User).filter(User.id == prt.user_id).first()
+    if not user:
+        return templates.TemplateResponse("forgot_password.html", {
+            "request": request,
+            "error": "Utilisateur introuvable"
+        })
+
+    # Update password and mark token used
+    user.hashed_password = get_password_hash(new_password)
+    prt.used = True
+    db.commit()
+
+    return RedirectResponse(url="/login", status_code=303)
 
 @router.get("/profile", response_class=HTMLResponse)
 async def profile_page(request: Request, db: Session = Depends(get_db)):

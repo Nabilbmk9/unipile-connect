@@ -469,8 +469,23 @@ body {
   font-size: 14px;
   margin-bottom: 6px;
 }
+.login-form small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+/* Generic helper text (for non-small tags) */
+.help-text {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 6px;
+}
 .login-form input[type="text"],
-.login-form input[type="password"] {
+.login-form input[type="password"],
+.login-form input[type="email"] {
   width: 100%;
   padding: 10px 12px;
   border-radius: 10px;
@@ -481,7 +496,8 @@ body {
     background 160ms ease;
 }
 .login-form input[type="text"]:focus,
-.login-form input[type="password"]:focus {
+.login-form input[type="password"]:focus,
+.login-form input[type="email"]:focus {
   border-color: rgba(37, 99, 235, 0.45);
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
   background: #ffffff;
@@ -513,6 +529,17 @@ body {
   background: #ecfdf5;
   color: #065f46;
   border: 1px solid #a7f3d0;
+}
+
+/* Info banner (for dev helper link) */
+.info-banner {
+  padding: 10px 12px;
+  border-radius: 10px;
+  margin: 10px 0 12px;
+  font-size: 14px;
+  background: #eff6ff; /* blue-50 */
+  color: #1d4ed8; /* blue-700 */
+  border: 1px solid #bfdbfe; /* blue-200 */
 }
 
 /* Register page styles */

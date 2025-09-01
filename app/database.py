@@ -58,6 +58,8 @@ class User(Base):
     # Relationships
     accounts = relationship("ConnectedAccount", back_populates="user")
     sessions = relationship("UserSession", back_populates="user")
+    # Reset tokens
+    reset_tokens = relationship("PasswordResetToken", back_populates="user")
 
 # User Session Model
 class UserSession(Base):
@@ -87,6 +89,20 @@ class ConnectedAccount(Base):
     
     # Relationships
     user = relationship("User", back_populates="accounts")
+
+# Password reset token model
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    token = Column(String(255), unique=True, index=True, nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    used = Column(Boolean, default=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    user = relationship("User", back_populates="reset_tokens")
 
 # Create all tables
 def create_tables():

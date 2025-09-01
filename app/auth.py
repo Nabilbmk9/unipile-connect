@@ -24,6 +24,7 @@ except Exception:  # Attribute missing on bcrypt>=4
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from .database import get_db, User, UserSession, ConnectedAccount
 
@@ -80,7 +81,10 @@ def get_user_by_username(db: Session, username: str) -> Optional[User]:
 
 def get_user_by_email(db: Session, email: str) -> Optional[User]:
     """Get user by email"""
-    return db.query(User).filter(User.email == email).first()
+    if not email:
+        return None
+    email_clean = email.strip().lower()
+    return db.query(User).filter(func.lower(User.email) == email_clean).first()
 
 def create_user(
     db: Session, 
@@ -108,7 +112,7 @@ def create_user(
     hashed_password = get_password_hash(password)
     user = User(
         username=username,
-        email=email,
+        email=email.strip().lower(),
         hashed_password=hashed_password,
         full_name=full_name,
         is_admin=is_admin
