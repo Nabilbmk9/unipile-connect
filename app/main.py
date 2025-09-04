@@ -20,7 +20,12 @@ mimetypes.add_type("text/css", ".css")
 mimetypes.add_type("application/javascript", ".js")
 
 # ---------- Env
-load_dotenv(dotenv_path=Path(__file__).parent.parent / ".env")
+# Try to load .env file if it exists, otherwise rely on system environment variables
+env_path = Path(__file__).parent.parent / ".env"
+if env_path.exists():
+    load_dotenv(dotenv_path=env_path)
+else:
+    load_dotenv()  # This will load from system environment variables
 
 # ---------- App
 app = FastAPI()
