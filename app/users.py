@@ -51,14 +51,10 @@ def send_password_reset_email(email: str, reset_url: str, user_name: str = None)
     Send a password reset email with HTML formatting.
     Returns True if email was sent successfully, False otherwise.
     """
-    smtp_host = os.getenv("SMTP_HOST")
-    smtp_port = int(os.getenv("SMTP_PORT", "587"))
-    smtp_user = os.getenv("SMTP_USER")
-    smtp_password = os.getenv("SMTP_PASSWORD")
-    smtp_from = os.getenv("SMTP_FROM", smtp_user or "no-reply@example.com")
-    use_tls = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
+    # Import SMTP config from main.py (loaded at module level)
+    from app.main import SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM, SMTP_USE_TLS
     
-    if not smtp_host or not smtp_user or not smtp_password:
+    if not SMTP_HOST or not SMTP_USER or not SMTP_PASSWORD:
         logger.warning("SMTP configuration incomplete. Required: SMTP_HOST, SMTP_USER, SMTP_PASSWORD")
         return False
     
@@ -135,7 +131,7 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
         # Create multipart message
         msg = MIMEMultipart('alternative')
         msg['Subject'] = "🔒 Réinitialisation de votre mot de passe - Unipile Connect"
-        msg['From'] = smtp_from
+        msg['From'] = SMTP_FROM
         msg['To'] = email
         
         # Attach both text and HTML versions
@@ -146,15 +142,15 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
         msg.attach(html_part)
         
         # Send email
-        if use_tls:
+        if SMTP_USE_TLS:
             context = ssl.create_default_context()
-            with smtplib.SMTP(smtp_host, smtp_port, timeout=30) as server:
+            with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30) as server:
                 server.starttls(context=context)
-                server.login(smtp_user, smtp_password)
+                server.login(SMTP_USER, SMTP_PASSWORD)
                 server.send_message(msg)
         else:
-            with smtplib.SMTP(smtp_host, smtp_port, timeout=30) as server:
-                server.login(smtp_user, smtp_password)
+            with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30) as server:
+                server.login(SMTP_USER, SMTP_PASSWORD)
                 server.send_message(msg)
         
         logger.info(f"Password reset email sent successfully to {email}")
@@ -737,6 +733,9 @@ async def debug_test_email(request: Request, email: str = None):
         return {"error": "Please provide email parameter: /users/debug/test-email?email=your@email.com"}
     
     try:
+        # Import SMTP config from main.py
+        from app.main import SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM, SMTP_USE_TLS
+        
         test_reset_url = "http://localhost:8000/debug/test-reset-link"
         success = send_password_reset_email(email, test_reset_url, "Debug User")
         
@@ -744,12 +743,12 @@ async def debug_test_email(request: Request, email: str = None):
             "success": success,
             "message": f"Test email {'sent successfully' if success else 'failed'} to {email}",
             "smtp_config": {
-                "host": os.getenv("SMTP_HOST"),
-                "port": os.getenv("SMTP_PORT", "587"),
-                "user": os.getenv("SMTP_USER"),
-                "password_set": bool(os.getenv("SMTP_PASSWORD")),
-                "from": os.getenv("SMTP_FROM"),
-                "tls": os.getenv("SMTP_USE_TLS", "true")
+                "host": SMTP_HOST,
+                "port": str(SMTP_PORT),
+                "user": SMTP_USER,
+                "password_set": bool(SMTP_PASSWORD),
+                "from": SMTP_FROM,
+                "tls": str(SMTP_USE_TLS)
             }
         }
     except Exception as e:
@@ -762,23 +761,19 @@ async def get_smtp_status(request: Request, db: Session = Depends(get_db)):
     if not user_session or not user_session.user.is_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
     
-    smtp_host = os.getenv("SMTP_HOST")
-    smtp_port = os.getenv("SMTP_PORT", "587")
-    smtp_user = os.getenv("SMTP_USER")
-    smtp_password = os.getenv("SMTP_PASSWORD")
-    smtp_from = os.getenv("SMTP_FROM")
-    use_tls = os.getenv("SMTP_USE_TLS", "true")
+    # Import SMTP config from main.py
+    from app.main import SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM, SMTP_USE_TLS
     
     config_status = {
-        "smtp_host": "✅ Configured" if smtp_host else "❌ Missing",
-        "smtp_port": f"✅ {smtp_port}" if smtp_port else "❌ Missing",
-        "smtp_user": "✅ Configured" if smtp_user else "❌ Missing",
-        "smtp_password": "✅ Configured" if smtp_password else "❌ Missing",
-        "smtp_from": f"✅ {smtp_from}" if smtp_from else f"⚠️ Using default ({smtp_user})",
-        "smtp_use_tls": f"✅ {use_tls}" if use_tls else "⚠️ Default (true)"
+        "smtp_host": "✅ Configured" if SMTP_HOST else "❌ Missing",
+        "smtp_port": f"✅ {SMTP_PORT}" if SMTP_PORT else "❌ Missing",
+        "smtp_user": "✅ Configured" if SMTP_USER else "❌ Missing",
+        "smtp_password": "✅ Configured" if SMTP_PASSWORD else "❌ Missing",
+        "smtp_from": f"✅ {SMTP_FROM}" if SMTP_FROM else f"⚠️ Using default ({SMTP_USER})",
+        "smtp_use_tls": f"✅ {SMTP_USE_TLS}" if SMTP_USE_TLS else "⚠️ Default (true)"
     }
     
-    is_fully_configured = all([smtp_host, smtp_user, smtp_password])
+    is_fully_configured = all([SMTP_HOST, SMTP_USER, SMTP_PASSWORD])
     
     return {
         "is_configured": is_fully_configured,

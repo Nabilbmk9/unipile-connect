@@ -20,7 +20,7 @@ mimetypes.add_type("text/css", ".css")
 mimetypes.add_type("application/javascript", ".js")
 
 # ---------- Env
-load_dotenv()
+load_dotenv(dotenv_path=Path(__file__).parent.parent / ".env")
 
 # ---------- App
 app = FastAPI()
@@ -47,6 +47,14 @@ APP_BASE_URL = _raw_app_base.rstrip("/")
 
 # ---------- Config
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-this")
+
+# ---------- SMTP Configuration
+SMTP_HOST = os.getenv("SMTP_HOST", "")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER", "")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+SMTP_FROM = os.getenv("SMTP_FROM", os.getenv("SMTP_USER", "no-reply@example.com"))
+SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
 
 SUCCESS_URL = f"{APP_BASE_URL}/connect/success"
 FAILURE_URL = f"{APP_BASE_URL}/connect/failure"
@@ -80,6 +88,12 @@ async def startup_event():
         print(f"  UNIPILE_API_HOST = {UNIPILE_API_HOST}")
         print(f"  UNIPILE_API_BASE = {UNIPILE_API_BASE}")
         print(f"  UNIPILE_API_KEY set: {'yes' if bool(UNIPILE_API_KEY) else 'no'}")
+        print(f"  SMTP_HOST = {SMTP_HOST}")
+        print(f"  SMTP_PORT = {SMTP_PORT}")
+        print(f"  SMTP_USER = {SMTP_USER}")
+        print(f"  SMTP_PASSWORD set: {'yes' if bool(SMTP_PASSWORD) else 'no'}")
+        print(f"  SMTP_FROM = {SMTP_FROM}")
+        print(f"  SMTP_USE_TLS = {SMTP_USE_TLS}")
     except Exception as e:
         print(f"⚠️ Could not print config: {e}")
     print("📋 Available routes:")
