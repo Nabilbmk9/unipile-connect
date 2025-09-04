@@ -429,6 +429,22 @@ async def unipile_notify(
     except Exception as e:
         return JSONResponse(status_code=500, content={"ok": False, "error": str(e)})
 
+
+# ---------- Debug endpoint for Railway
+@app.get("/debug/env")
+def debug_env():
+    """Debug endpoint to check environment variables in Railway"""
+    return {
+        "SMTP_HOST": os.getenv("SMTP_HOST"),
+        "SMTP_USER": os.getenv("SMTP_USER"), 
+        "SMTP_PASSWORD": "***" if os.getenv("SMTP_PASSWORD") else None,
+        "SMTP_FROM": os.getenv("SMTP_FROM"),
+        "SMTP_USE_TLS": os.getenv("SMTP_USE_TLS"),
+        "UNIPILE_API_KEY": "***" if os.getenv("UNIPILE_API_KEY") else None,
+        "APP_BASE_URL": os.getenv("APP_BASE_URL"),
+        "all_env_keys": [k for k in os.environ.keys() if k.startswith("SMTP") or k.startswith("UNIPILE") or k.startswith("APP")]
+    }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
