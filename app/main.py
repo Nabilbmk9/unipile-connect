@@ -20,12 +20,10 @@ mimetypes.add_type("text/css", ".css")
 mimetypes.add_type("application/javascript", ".js")
 
 # ---------- Env
-# Try to load .env file if it exists, otherwise rely on system environment variables
-env_path = Path(__file__).parent.parent / ".env"
-if env_path.exists():
-    load_dotenv(dotenv_path=env_path)
-else:
-    load_dotenv()  # This will load from system environment variables
+# Railway injects environment variables at runtime, no need for load_dotenv in production
+# Only load .env file for local development
+if os.getenv("RAILWAY_ENVIRONMENT") is None:  # Not running on Railway
+    load_dotenv()
 
 # ---------- App
 app = FastAPI()
@@ -60,6 +58,21 @@ SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 SMTP_FROM = os.getenv("SMTP_FROM", os.getenv("SMTP_USER", "no-reply@example.com"))
 SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
+
+# Validate SMTP configuration
+def validate_smtp_config():
+    missing_vars = []
+    if not SMTP_HOST:
+        missing_vars.append("SMTP_HOST")
+    if not SMTP_USER:
+        missing_vars.append("SMTP_USER")
+    if not SMTP_PASSWORD:
+        missing_vars.append("SMTP_PASSWORD")
+    
+    if missing_vars:
+        raise ValueError(f"SMTP configuration incomplete. Required: {', '.join(missing_vars)}")
+    
+    return True
 
 SUCCESS_URL = f"{APP_BASE_URL}/connect/success"
 FAILURE_URL = f"{APP_BASE_URL}/connect/failure"
@@ -105,6 +118,14 @@ async def startup_event():
         print(f"    os.getenv('SMTP_PASSWORD'): {repr(os.getenv('SMTP_PASSWORD'))}")
         print(f"  RAILWAY DEBUG - Force redeploy v2")
         print(f"  RAILWAY DEBUG - Current time: {__import__('datetime').datetime.now()}")
+        
+        # Validate SMTP configuration
+        try:
+            validate_smtp_config()
+            print(f"  ✅ SMTP configuration is valid")
+        except ValueError as e:
+            print(f"  ❌ SMTP configuration error: {e}")
+            
     except Exception as e:
         print(f"⚠️ Could not print config: {e}")
     print("📋 Available routes:")
