@@ -99,6 +99,10 @@ async def startup_event():
         print(f"  SMTP_PASSWORD set: {'yes' if bool(SMTP_PASSWORD) else 'no'}")
         print(f"  SMTP_FROM = {SMTP_FROM}")
         print(f"  SMTP_USE_TLS = {SMTP_USE_TLS}")
+        print(f"  DEBUG - All SMTP env vars:")
+        print(f"    os.getenv('SMTP_HOST'): {repr(os.getenv('SMTP_HOST'))}")
+        print(f"    os.getenv('SMTP_USER'): {repr(os.getenv('SMTP_USER'))}")
+        print(f"    os.getenv('SMTP_PASSWORD'): {repr(os.getenv('SMTP_PASSWORD'))}")
     except Exception as e:
         print(f"⚠️ Could not print config: {e}")
     print("📋 Available routes:")
