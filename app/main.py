@@ -103,7 +103,8 @@ async def startup_event():
         print(f"    os.getenv('SMTP_HOST'): {repr(os.getenv('SMTP_HOST'))}")
         print(f"    os.getenv('SMTP_USER'): {repr(os.getenv('SMTP_USER'))}")
         print(f"    os.getenv('SMTP_PASSWORD'): {repr(os.getenv('SMTP_PASSWORD'))}")
-        print(f"  RAILWAY DEBUG - Force redeploy")
+        print(f"  RAILWAY DEBUG - Force redeploy v2")
+        print(f"  RAILWAY DEBUG - Current time: {__import__('datetime').datetime.now()}")
     except Exception as e:
         print(f"⚠️ Could not print config: {e}")
     print("📋 Available routes:")
