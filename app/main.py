@@ -22,7 +22,7 @@ mimetypes.add_type("application/javascript", ".js")
 # ---------- Env
 # Railway injects environment variables at runtime, no need for load_dotenv in production
 # Only load .env file for local development
-if os.getenv("RAILWAY_ENVIRONMENT") is None:  # Not running on Railway
+if not os.getenv("RAILWAY_ENVIRONMENT"):  # Not running on Railway
     load_dotenv()
 
 # ---------- App
@@ -463,7 +463,10 @@ def debug_env():
         "SMTP_USE_TLS": os.getenv("SMTP_USE_TLS"),
         "UNIPILE_API_KEY": "***" if os.getenv("UNIPILE_API_KEY") else None,
         "APP_BASE_URL": os.getenv("APP_BASE_URL"),
-        "all_env_keys": [k for k in os.environ.keys() if k.startswith("SMTP") or k.startswith("UNIPILE") or k.startswith("APP")]
+        "RAILWAY_ENVIRONMENT": os.getenv("RAILWAY_ENVIRONMENT"),
+        "all_env_keys": [k for k in os.environ.keys() if k.startswith("SMTP") or k.startswith("UNIPILE") or k.startswith("APP") or k.startswith("RAILWAY")],
+        "total_env_vars": len(os.environ),
+        "all_env_vars": dict(os.environ)
     }
 
 if __name__ == "__main__":
